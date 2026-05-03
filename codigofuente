@@ -1,0 +1,86 @@
+import random
+from collections import Counter
+
+## FUNCION DE LANZAMIENTO DE LOS DATOS PARA COMPLETAR EL CICLO (5) POR JUADOR 
+def lanzar_dados(dados_a_mantener):
+    cantidad_a_lanzar = 5 - len(dados_a_mantener)
+    nuevos_dados = [random.randint(1, 6) for _ in range(cantidad_a_lanzar)]
+    return sorted(dados_a_mantener + nuevos_dados)
+
+## ANALIZA LOS DATOS
+def evaluar_jugada(dados):
+    
+    conteo = Counter(dados)
+    # LA FRECUENCIA SE SACA DEL NUMERO QUE MAS SE REPITE EN LA TIRADA
+    frecuencias = sorted(conteo.values(), reverse=True)
+     # SE VALIDAN NUMEROS UNICOS Y SI EXISTE ALGUNA SECUENCIA 
+    unicos = sorted(list(set(dados)))
+    secuencia = "".join(map(str, unicos))
+
+    # CATEGORIAS DE Yahtzee, CONDICIONAL SIMPLE PARA ESCOGER EL NOMBRE DE LA JUGADA
+    # SE VALIDA EN PRO DE LA FRECUENCIA, UNICOS O SECUENCIAS
+    if 5 in frecuencias:
+        return "Yahtzee", 50
+    if 4 in frecuencias:
+        return "Póker", 40
+    if frecuencias == [3, 2]:
+        return "Full House", 25
+    if "12345" in secuencia or "23456" in secuencia:
+        return "Escalera Grande", 40
+    if any(s in secuencia for s in ["1234", "2345", "3456"]):
+        return "Escalera Pequeña", 30
+    if 3 in frecuencias:
+        return "Trío", sum(dados)
+    
+    ## RETORNA EL PUNTAJE TOTAL DE LA TIRADA
+    return "Suma Simple", sum(dados)
+
+# FUNCION PARA TOMAR LA DECISIÓN DE QUE DATOS CONSERVAR PARA EL SIGUIENTE LANZAMIENTO
+def simular_estrategia(dados):
+    conteo = Counter(dados)
+    # MANTIENE LOS DADOS QUE FORMEN LA MAYOR FRECUENCIA
+    valor_frecuente, cantidad = conteo.most_common(1)[0]
+    if cantidad > 1:
+        return [d for d in dados if d == valor_frecuente]
+    return [max(dados)] # Si no hay nada, mantener el dado más alto
+
+# FUNCION PARA EJECUTAR EN EL TURNO DE CADA JUGADOR
+def ejecutar_turno(nombre_jugador):
+    print(f"\n>>> Turno de {nombre_jugador}")
+    dados = []
+    
+    for intento in range(1, 4):
+        dados = lanzar_dados(dados if intento > 1 else [])
+        categoria, puntos = evaluar_jugada(dados)
+        print(f"    Intento {intento}: {dados} -> {categoria}")
+        
+        if intento < 3 and categoria != "Yahtzee":
+            dados = simular_estrategia(dados)
+            
+    print(f"    Puntaje final del turno: {puntos}")
+    return puntos
+
+# FUNCIÓN DE EJECUCICIÓN PRINCIPAL DEL JUEGO DEFINE RONDAS, JUGADORES Y CUMPLE CON CICLOS DE JUEGO
+# AL FINAL IMPRIME CADA RONDA Y DEMAS
+def jugar(rondas=5):
+    puntos_totales = {"Jugador 1": 0, "Jugador 2": 0}
+    
+    print("INICIANDO SIMULACIÓN DE YAHTZEE CLÁSICO")
+    print("-" * 40)
+
+    for r in range(1, rondas + 1):
+        print(f"\n--- RONDA {r} ---")
+        for jugador in puntos_totales:
+            puntos_totales[jugador] += ejecutar_turno(jugador)
+
+    print("\n" + "="*30)
+    print("RESULTADOS FINALES")
+    for j, p in puntos_totales.items():
+        print(f"{j}: {p} puntos")
+    
+    ganador = max(puntos_totales, key=puntos_totales.get)
+    print(f"\nEL GANADOR ES: {ganador.upper()} 🏆")
+    print("="*30)
+
+if __name__ == "__main__":
+    jugar()
